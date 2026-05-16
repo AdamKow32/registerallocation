@@ -12,8 +12,8 @@ struct Instance {
     int k;
     int m;
 
-    vector<double> weights;          // double (nie int)
-    vector<pair<int, int>> edges;    // 0-indexed
+    vector<double> weights;
+    vector<pair<int, int>> edges;
 };
 
 struct AllocationResult {

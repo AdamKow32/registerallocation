@@ -15,9 +15,9 @@ AllocationResult chaitinBaseline(
     vector<vector<int>> adjacency = buildAdjacencyList(instance);
 
     vector<int>  degree(instance.n);
-    vector<int>  assignment(instance.n, 0);
-    vector<bool> active(instance.n, true);
-    vector<bool> spilled(instance.n, false);
+    vector assignment(instance.n, 0);
+    vector active(instance.n, true);
+    vector spilled(instance.n, false);
 
     for (int i = 0; i < instance.n; i++)
         degree[i] = adjacency[i].size();
@@ -79,7 +79,7 @@ AllocationResult chaitinBaseline(
     for (int i = (int)simplify_stack.size() - 1; i >= 0; i--) {
         int node = simplify_stack[i];
 
-        vector<bool> used_register(instance.k + 1, false);
+        vector used_register(instance.k + 1, false);
         for (int neighbor : adjacency[node]) {
             int reg = assignment[neighbor];
             if (reg > 0) used_register[reg] = true;
