@@ -2,8 +2,6 @@
 
 Implementation of metaheuristics for the register allocation problem, formalized as weighted graph coloring with spilling. The problem is **NP-hard**, Chaitin (1981) proved it is equivalent to k-coloring of the interference graph, which justifies the use of metaheuristics.
 
----
-
 A compiler must assign program variables to a limited number of CPU registers. Two variables that are **live at the same time** cannot share a register. This relationship is modeled as an **interference graph** `G = (V, E)`.
 
 If a variable cannot be assigned a register, it is **spilled** to RAM, generating a cost proportional to how often it is used (spill cost). The goal is to minimize total weighted spill cost.
