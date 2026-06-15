@@ -12,7 +12,7 @@ int    K            = 8;
 double DENSITY      = 0.3;
 std::string GRAPH   = "interval";
 unsigned int SEED   = 42;
-std::string OUTPUT  = "instance.txt";
+std::string OUTPUT  = "data/instance.txt";
 
 
 std::vector<std::pair<int,int>> generate_erdos_renyi(int n, double p, std::mt19937& rng) {
