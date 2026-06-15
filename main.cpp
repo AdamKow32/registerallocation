@@ -3,8 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-namespace fs = std::filesystem;
 using namespace std;
+namespace fs = std::filesystem;
 
 int main() {
     fs::create_directories("logs");
@@ -16,6 +16,7 @@ int main() {
          << " k=" << instance.k
          << " m=" << instance.m << "\n\n";
 
+    AllocationResult chaitin_result;
     {
         RunConfig cfg;
         cfg.algorithm      = "chaitin_baseline";
@@ -26,30 +27,31 @@ int main() {
         cfg.max_iterations = instance.n * 2;
 
         Logger logger(cfg);
-        AllocationResult result = chaitinBaseline(instance, logger);
+        chaitin_result = chaitinBaseline(instance, logger);
 
         string sol_file = "logs/" + logger.getRunId() + "_solution.csv";
-        saveAllocation(instance, result.assignment, sol_file);
-        logger.logFinal(result.cost, "done");
+        saveAllocation(instance, chaitin_result.assignment, sol_file);
+        logger.logFinal(chaitin_result.cost, "done");
 
-        cout << "[Chaitin] cost=" << result.cost
+        cout << "[Chaitin] cost=" << chaitin_result.cost
              << "  run_id=" << logger.getRunId() << "\n\n";
     }
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize        = 200;
-        eaCfg.budget         = 100000;
-        eaCfg.px             = 0.7;
-        eaCfg.pm             = 0.4;
-        eaCfg.tournamentSize = 2;
-        eaCfg.eliteCount     = 1;
-        eaCfg.mutationType   = "change";
-        eaCfg.crossoverType  = "uniform";
-        eaCfg.seed           = 42;
+        eaCfg.popSize         = 100;
+        eaCfg.budget          = 50000;
+        eaCfg.px              = 0.7;
+        eaCfg.pm              = 0.3;
+        eaCfg.tournamentSize  = 3;
+        eaCfg.eliteCount      = 2;
+        eaCfg.chaitinFraction = 0.0;
+        eaCfg.mutationType    = "change";
+        eaCfg.crossoverType   = "uniform";
+        eaCfg.seed            = 42;
 
         RunConfig cfg;
-        cfg.algorithm      = "ea";
+        cfg.algorithm      = "ea_general";
         cfg.instance_name  = instance_file;
         cfg.output_dir     = "logs";
         cfg.n = instance.n; cfg.k = instance.k; cfg.m = instance.m;
@@ -57,17 +59,64 @@ int main() {
         cfg.max_iterations = eaCfg.budget;
 
         Logger logger(cfg);
-        EAResult result = evolutionaryAlgorithm(instance, logger, eaCfg);
+
+        EAResult result = evolutionaryAlgorithm(
+            instance,
+            chaitin_result.assignment,
+            logger,
+            eaCfg
+        );
 
         string sol_file = "logs/" + logger.getRunId() + "_solution.csv";
         saveAllocation(instance, result.assignment, sol_file);
         logger.logFinal(result.cost, "done");
 
-        cout << "\n[EA] cost="     << result.cost
-             << "  spills="        << result.spills
-             << "  feasible="      << (result.feasible ? "yes" : "NO")
-             << "  evals="         << result.evals
-             << "  run_id="        << logger.getRunId() << "\n";
+        cout << "\n[EA general] cost=" << result.cost
+             << "  spills="            << result.spills
+             << "  feasible="          << (result.feasible ? "yes" : "NO")
+             << "  evals="             << result.evals
+             << "  run_id="            << logger.getRunId() << "\n";
+    }
+
+    {
+        EAConfig eaCfg;
+        eaCfg.popSize         = 100;
+        eaCfg.budget          = 50000;
+        eaCfg.px              = 0.7;
+        eaCfg.pm              = 0.3;
+        eaCfg.tournamentSize  = 3;
+        eaCfg.eliteCount      = 2;
+        eaCfg.chaitinFraction = 0.3;
+        eaCfg.mutationType    = "repair";
+        eaCfg.crossoverType   = "smart";
+        eaCfg.seed            = 42;
+
+        RunConfig cfg;
+        cfg.algorithm      = "ea_personalized";
+        cfg.instance_name  = instance_file;
+        cfg.output_dir     = "logs";
+        cfg.n = instance.n; cfg.k = instance.k; cfg.m = instance.m;
+        cfg.seed           = eaCfg.seed;
+        cfg.max_iterations = eaCfg.budget;
+
+        Logger logger(cfg);
+
+        EAResult result = evolutionaryAlgorithm(
+            instance,
+            chaitin_result.assignment,
+            logger,
+            eaCfg
+        );
+
+        string sol_file = "logs/" + logger.getRunId() + "_solution.csv";
+        saveAllocation(instance, result.assignment, sol_file);
+        logger.logFinal(result.cost, "done");
+
+        cout << "\n[EA personalized] cost=" << result.cost
+             << "  spills="                  << result.spills
+             << "  feasible="                << (result.feasible ? "yes" : "NO")
+             << "  evals="                   << result.evals
+             << "  run_id="                  << logger.getRunId() << "\n";
     }
 
     return 0;
