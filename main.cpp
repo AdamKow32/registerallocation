@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 int main() {
     fs::create_directories("logs");
 
-    string instance_file = "data/instance_hard.txt";
+    string instance_file = "data/instance_hard .txt";
     Instance instance = readInstance(instance_file);
 
     cout << "Instance: n=" << instance.n
@@ -42,11 +42,11 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 50;
-        eaCfg.generations     = 1000;
+        eaCfg.popSize         = 200;
+        eaCfg.generations     = 250;
         eaCfg.budget          = eaCfg.popSize * eaCfg.generations;
         eaCfg.px              = 0.7;
-        eaCfg.pm              = 0.1;
+        eaCfg.pm              = 0.3;
         eaCfg.tournamentSize  = 3;
         eaCfg.eliteCount      = 2;
         eaCfg.chaitinFraction = 0.0;
@@ -95,17 +95,17 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 50;
-        eaCfg.generations     = 1000;
+        eaCfg.popSize         = 250;
+        eaCfg.generations     = 200;
         eaCfg.budget          = eaCfg.popSize * eaCfg.generations;
-        eaCfg.px              = 0.6;
-        eaCfg.pm              = 0.05;
+        eaCfg.px              = 0.8;
+        eaCfg.pm              = 0.5;
         eaCfg.tournamentSize  = 2;
         eaCfg.eliteCount      = 1;
-        eaCfg.chaitinFraction = 0.1;
-        eaCfg.repairStrength  = 1;
-        eaCfg.smartBias       = 0.55;
-        eaCfg.immigrantFraction = 0.0;
+        eaCfg.chaitinFraction = 0.2;
+        eaCfg.repairStrength  = 3;
+        eaCfg.smartBias       = 0.65;
+        eaCfg.immigrantFraction = 0.08;
         eaCfg.mutationType    = "repair";
         eaCfg.crossoverType   = "smart";
         eaCfg.seed            = 42;

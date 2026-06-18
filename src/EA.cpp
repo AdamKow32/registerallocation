@@ -256,15 +256,7 @@ EAResult evolutionaryAlgorithm(
                 continue;
             }
 
-            vector<int> spilled;
-            for (int i = 0; i < inst.n; i++) {
-                if (ind.chromosome[i] == 0) spilled.push_back(i);
-            }
-
-            if (spilled.empty()) break;
-
-            uniform_int_distribution<int> pick(0, (int)spilled.size() - 1);
-            assignFreeRegister(spilled[pick(rng)]);
+            break;
         }
 
         if (coin(rng) < 0.1) {
@@ -333,14 +325,18 @@ EAResult evolutionaryAlgorithm(
     while (generation + 1 < cfg.generations && evals < totalBudget) {
         generation++;
 
-        vector<Individual> candidates = elite(cfg.eliteCount);
-        candidates.reserve(cfg.eliteCount + cfg.popSize);
+        vector<Individual> next = elite(cfg.eliteCount);
+        next.reserve(cfg.popSize);
 
+        double progress = (cfg.generations <= 1)
+            ? 1.0
+            : (double)generation / (double)(cfg.generations - 1);
+        double immigrantFraction = cfg.immigrantFraction * (1.0 - progress);
         int immigrants = min(
-            cfg.popSize,
-            max(0, (int)(cfg.popSize * cfg.immigrantFraction))
+            max(0, cfg.popSize - cfg.eliteCount),
+            max(0, (int)(cfg.popSize * immigrantFraction))
         );
-        int offspringTarget = max(0, cfg.popSize - immigrants);
+        int offspringTarget = max(0, cfg.popSize - cfg.eliteCount - immigrants);
 
         int offspringCreated = 0;
         double currentGenerationBest = numeric_limits<double>::max();
@@ -356,29 +352,30 @@ EAResult evolutionaryAlgorithm(
             if (offspring.fitness < bestEver.fitness)
                 bestEver = offspring;
 
-            candidates.push_back(move(offspring));
+            next.push_back(move(offspring));
         }
 
         for (int i = 0; i < immigrants && evals < totalBudget; i++) {
-            Individual immigrant = makeRandom();
-            if (cfg.mutationType == "repair") {
-                immigrant = mutationRepair(move(immigrant));
-                immigrant.fitness = evalRAObjective(inst, immigrant.chromosome);
+            Individual immigrant = tournament();
+            int changes = max(1, inst.n / 20);
+            uniform_int_distribution<int> pos(0, inst.n - 1);
+            for (int j = 0; j < changes; j++) {
+                immigrant.chromosome[pos(rng)] = geneDist(rng);
             }
+            immigrant.fitness = evalRAObjective(inst, immigrant.chromosome);
             evals++;
             currentGenerationBest = min(currentGenerationBest, immigrant.fitness);
 
             if (immigrant.fitness < bestEver.fitness)
                 bestEver = immigrant;
 
-            candidates.push_back(move(immigrant));
+            next.push_back(move(immigrant));
         }
 
-        sort(candidates.begin(), candidates.end());
-        if ((int)candidates.size() > cfg.popSize) {
-            candidates.resize(cfg.popSize);
+        while ((int)next.size() < cfg.popSize) {
+            next.push_back(tournament());
         }
-        pop = move(candidates);
+        pop = move(next);
 
         auto [avg, stddev, worst] = computeStats(pop);
         logger.logIteration(generation, currentGenerationBest, worst, bestEver.fitness, avg, stddev, "generation");
