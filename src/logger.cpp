@@ -62,6 +62,7 @@ public:
             << "iteration"       << separator
             << "time_ms"         << separator
             << "current_cost"    << separator
+            << "worst_cost"      << separator
             << "best_cost"       << separator
             << "avg_cost"        << separator
             << "std_cost"        << separator
@@ -92,12 +93,24 @@ public:
         double best_cost,
         const string& note
     ) {
-        logIteration(iteration, current_cost, best_cost, 0.0, 0.0, note);
+        logIteration(iteration, current_cost, current_cost, best_cost, 0.0, 0.0, note);
     }
 
     void logIteration(
         int iteration,
         double current_cost,
+        double best_cost,
+        double avg_cost,
+        double std_cost,
+        const string& note
+    ) {
+        logIteration(iteration, current_cost, current_cost, best_cost, avg_cost, std_cost, note);
+    }
+
+    void logIteration(
+        int iteration,
+        double current_cost,
+        double worst_cost,
         double best_cost,
         double avg_cost,
         double std_cost,
@@ -115,6 +128,7 @@ public:
             << iteration            << separator
             << elapsedMs()          << separator
             << current_cost         << separator
+            << worst_cost           << separator
             << best_cost            << separator
             << avg_cost             << separator
             << std_cost             << separator

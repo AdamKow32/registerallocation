@@ -42,8 +42,8 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 200;
-        eaCfg.generations     = 250;
+        eaCfg.popSize         = 50;
+        eaCfg.generations     = 1000;
         eaCfg.budget          = eaCfg.popSize * eaCfg.generations;
         eaCfg.px              = 0.7;
         eaCfg.pm              = 0.1;
@@ -95,16 +95,17 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 200;
-        eaCfg.generations     = 250;
+        eaCfg.popSize         = 50;
+        eaCfg.generations     = 1000;
         eaCfg.budget          = eaCfg.popSize * eaCfg.generations;
-        eaCfg.px              = 0.7;
-        eaCfg.pm              = 0.2;
-        eaCfg.tournamentSize  = 3;
-        eaCfg.eliteCount      = 2;
-        eaCfg.chaitinFraction = 0.0;
-        eaCfg.repairStrength  = 3;
-        eaCfg.smartBias       = 0.75;
+        eaCfg.px              = 0.6;
+        eaCfg.pm              = 0.05;
+        eaCfg.tournamentSize  = 2;
+        eaCfg.eliteCount      = 1;
+        eaCfg.chaitinFraction = 0.1;
+        eaCfg.repairStrength  = 1;
+        eaCfg.smartBias       = 0.55;
+        eaCfg.immigrantFraction = 0.0;
         eaCfg.mutationType    = "repair";
         eaCfg.crossoverType   = "smart";
         eaCfg.seed            = 42;
@@ -126,7 +127,8 @@ int main() {
              << "  crossover=" << eaCfg.crossoverType
              << "  chaitinFraction=" << eaCfg.chaitinFraction
              << "  repairStrength=" << eaCfg.repairStrength
-             << "  smartBias=" << eaCfg.smartBias << "\n";
+             << "  smartBias=" << eaCfg.smartBias
+             << "  immigrantFraction=" << eaCfg.immigrantFraction << "\n";
 
         EAResult result = evolutionaryAlgorithm(instance, chaitin_result.assignment, logger, eaCfg);
 

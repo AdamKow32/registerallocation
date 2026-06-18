@@ -24,29 +24,40 @@ struct Individual {
 
 struct EAConfig {
     int    popSize           = 100;
-    int    budget            = 50000;   // compatibility/output only
-    int    generations       = 500;     // total evaluation budget = popSize * generations
+    int    budget            = 50000;
+    int    generations       = 500;
     double px                = 0.7;
     double pm                = 0.3;
     int    tournamentSize    = 3;
     int    eliteCount        = 2;
-    double chaitinFraction   = 0.3; //
+    double chaitinFraction   = 0.3;
     int    repairStrength    = 3;
     double smartBias         = 0.75;
+    double immigrantFraction = 0.0;
     string mutationType      = "repair";   // repair | change | swap
     string crossoverType     = "smart";    // smart | uniform | onepoint
     int    seed              = 42;
 };
 
 
-double evalPenalized(const Instance& inst, const vector<int>& x, double M) {
-    double cost = 0.0;
-    for (int i = 0; i < inst.n; i++)
-        if (x[i] == 0) cost += inst.weights[i];
-    for (auto [u, v] : inst.edges)
-        if (x[u] != 0 && x[v] != 0 && x[u] == x[v])
-            cost += M;
-    return cost;
+void repairConflictsBySpilling(const Instance& inst, vector<int>& x) {
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto [u, v] : inst.edges) {
+            if (x[u] != 0 && x[v] != 0 && x[u] == x[v]) {
+                int victim = (inst.weights[u] <= inst.weights[v]) ? u : v;
+                x[victim] = 0;
+                changed = true;
+            }
+        }
+    }
+}
+
+double evalRAObjective(const Instance& inst, const vector<int>& x) {
+    vector<int> decoded = x;
+    repairConflictsBySpilling(inst, decoded);
+    return calculateSpillCost(inst, decoded);
 }
 
 bool isFeasible(const Instance& inst, const vector<int>& x) {
@@ -82,7 +93,6 @@ EAResult evolutionaryAlgorithm(
     uniform_int_distribution    geneDist(0, inst.k);
     uniform_real_distribution coin(0.0, 1.0);
 
-    double M = inst.n * (*max_element(inst.weights.begin(), inst.weights.end())) + 1.0;
     int evals = 0;
 
     vector<vector<int>> adj = buildAdjacencyList(inst);
@@ -91,7 +101,7 @@ EAResult evolutionaryAlgorithm(
     auto makeRandom = [&]() {
         vector<int> c(inst.n);
         for (int i = 0; i < inst.n; i++) c[i] = geneDist(rng);
-        return Individual(c, evalPenalized(inst, c, M));
+        return Individual(c, evalRAObjective(inst, c));
     };
 
     auto makeFromChaitin = [&]() {
@@ -129,7 +139,7 @@ EAResult evolutionaryAlgorithm(
                 c[v] = geneDist(rng);
             }
         }
-        return Individual(c, evalPenalized(inst, c, M));
+        return Individual(c, evalRAObjective(inst, c));
     };
 
     vector<Individual> pop;
@@ -291,7 +301,7 @@ EAResult evolutionaryAlgorithm(
 
     auto computeStats = [&](const vector<Individual>& p) {
         double sum = 0.0;
-        double worst = -numeric_limits<double>::max();
+        double worst = numeric_limits<double>::lowest();
         for (const auto& ind : p) {
             sum += ind.fitness;
             worst = max(worst, ind.fitness);
@@ -311,7 +321,7 @@ EAResult evolutionaryAlgorithm(
     const int totalBudget = cfg.popSize * cfg.generations;
 
     auto [avg0, std0, worst0] = computeStats(pop);
-    logger.logIteration(0, worst0, bestEver.fitness, avg0, std0, "init");
+    logger.logIteration(0, bestEver.fitness, worst0, bestEver.fitness, avg0, std0, "init");
     cout << "Gen 0"
          << " / " << (cfg.generations - 1)
          << " | popSize=" << cfg.popSize
@@ -326,12 +336,18 @@ EAResult evolutionaryAlgorithm(
         vector<Individual> candidates = elite(cfg.eliteCount);
         candidates.reserve(cfg.eliteCount + cfg.popSize);
 
+        int immigrants = min(
+            cfg.popSize,
+            max(0, (int)(cfg.popSize * cfg.immigrantFraction))
+        );
+        int offspringTarget = max(0, cfg.popSize - immigrants);
+
         int offspringCreated = 0;
         double currentGenerationBest = numeric_limits<double>::max();
-        while (offspringCreated < cfg.popSize && evals < totalBudget) {
+        while (offspringCreated < offspringTarget && evals < totalBudget) {
             Individual offspring = applyCrossover(tournament(), tournament());
             offspring = applyMutation(move(offspring));
-            offspring.fitness = evalPenalized(inst, offspring.chromosome, M);
+            offspring.fitness = evalRAObjective(inst, offspring.chromosome);
             evals++;
             offspringCreated++;
 
@@ -343,6 +359,21 @@ EAResult evolutionaryAlgorithm(
             candidates.push_back(move(offspring));
         }
 
+        for (int i = 0; i < immigrants && evals < totalBudget; i++) {
+            Individual immigrant = makeRandom();
+            if (cfg.mutationType == "repair") {
+                immigrant = mutationRepair(move(immigrant));
+                immigrant.fitness = evalRAObjective(inst, immigrant.chromosome);
+            }
+            evals++;
+            currentGenerationBest = min(currentGenerationBest, immigrant.fitness);
+
+            if (immigrant.fitness < bestEver.fitness)
+                bestEver = immigrant;
+
+            candidates.push_back(move(immigrant));
+        }
+
         sort(candidates.begin(), candidates.end());
         if ((int)candidates.size() > cfg.popSize) {
             candidates.resize(cfg.popSize);
@@ -350,7 +381,7 @@ EAResult evolutionaryAlgorithm(
         pop = move(candidates);
 
         auto [avg, stddev, worst] = computeStats(pop);
-        logger.logIteration(generation, worst, bestEver.fitness, avg, stddev, "generation");
+        logger.logIteration(generation, currentGenerationBest, worst, bestEver.fitness, avg, stddev, "generation");
 
         if (generation <= 10 || generation % 10 == 0 || generation + 1 == cfg.generations)
             cout << "Gen " << generation
@@ -362,11 +393,14 @@ EAResult evolutionaryAlgorithm(
                  << " / " << totalBudget << "\n";
     }
 
+    vector<int> decodedBest = bestEver.chromosome;
+    repairConflictsBySpilling(inst, decodedBest);
+
     EAResult result;
-    result.assignment = bestEver.chromosome;
-    result.cost       = calculateSpillCost(inst, bestEver.chromosome);
-    result.feasible   = isFeasible(inst, bestEver.chromosome);
-    result.spills     = spillCount(inst, bestEver.chromosome);
+    result.assignment = decodedBest;
+    result.cost       = calculateSpillCost(inst, decodedBest);
+    result.feasible   = isFeasible(inst, decodedBest);
+    result.spills     = spillCount(inst, decodedBest);
     result.evals      = evals;
     return result;
 }
