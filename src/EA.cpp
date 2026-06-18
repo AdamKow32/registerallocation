@@ -4,12 +4,14 @@
 #include "logger.cpp"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <random>
 #include <vector>
 
 using namespace std;
+
 
 struct Individual {
     vector<int> chromosome;
@@ -27,7 +29,7 @@ struct EAConfig {
     double pm                = 0.3;
     int    tournamentSize    = 3;
     int    eliteCount        = 2;
-    double chaitinFraction   = 0.3; //
+    double chaitinFraction   = 0.3;
     string mutationType      = "repair";   // repair | change | swap
     string crossoverType     = "smart";    // smart | uniform | onepoint
     int    seed              = 42;
@@ -58,7 +60,6 @@ int spillCount(const Instance& inst, const vector<int>& x) {
     return cnt;
 }
 
-
 struct EAResult {
     vector<int> assignment;
     double cost;
@@ -74,14 +75,13 @@ EAResult evolutionaryAlgorithm(
     const EAConfig& cfg
 ) {
     mt19937 rng(cfg.seed);
-    uniform_int_distribution    geneDist(0, inst.k);
-    uniform_real_distribution coin(0.0, 1.0);
+    uniform_int_distribution<int>    geneDist(0, inst.k);
+    uniform_real_distribution<double> coin(0.0, 1.0);
 
     double M = inst.n * (*max_element(inst.weights.begin(), inst.weights.end())) + 1.0;
     int evals = 0;
 
     vector<vector<int>> adj = buildAdjacencyList(inst);
-
 
     auto makeRandom = [&]() {
         vector<int> c(inst.n);
@@ -132,7 +132,8 @@ EAResult evolutionaryAlgorithm(
                 if (p1.chromosome[nb] != 0 && p1.chromosome[nb] == p1.chromosome[i]) conf1++;
                 if (p2.chromosome[nb] != 0 && p2.chromosome[nb] == p2.chromosome[i]) conf2++;
             }
-            c[i] = (conf1 <= conf2) ? p1.chromosome[i] : p2.chromosome[i];
+            if (conf1 == conf2) c[i] = (coin(rng) < 0.5) ? p1.chromosome[i] : p2.chromosome[i];
+            else                c[i] = (conf1 < conf2)  ? p1.chromosome[i] : p2.chromosome[i];
         }
         return Individual(c, numeric_limits<double>::max());
     };
@@ -160,7 +161,8 @@ EAResult evolutionaryAlgorithm(
         return crossoverSmart(p1, p2);
     };
 
-    auto mutationRepair = [&](Individual ind) {
+    auto repair = [&](Individual& ind) -> bool {
+        bool repaired_any = false;
         for (auto [u, v] : inst.edges) {
             if (ind.chromosome[u] != 0 &&
                 ind.chromosome[v] != 0 &&
@@ -178,10 +180,10 @@ EAResult evolutionaryAlgorithm(
                     }
                 }
                 if (!fixed) ind.chromosome[v] = 0;
+                repaired_any = true;
             }
         }
-        ind.fitness = numeric_limits<double>::max();
-        return ind;
+        return repaired_any;
     };
 
     auto mutationChange = [&](Individual ind) {
@@ -202,13 +204,34 @@ EAResult evolutionaryAlgorithm(
 
     auto applyMutation = [&](Individual ind) {
         if (coin(rng) >= cfg.pm) return ind;
-        if (cfg.mutationType == "change") return mutationChange(move(ind));
-        if (cfg.mutationType == "swap")   return mutationSwap(move(ind));
-        return mutationRepair(move(ind));
+        if (cfg.mutationType == "swap") return mutationSwap(move(ind));
+        return mutationChange(move(ind));
+    };
+
+    auto applyStep = [&](Individual ind) {
+        if (cfg.mutationType == "repair") {
+            repair(ind);
+            ind.fitness = numeric_limits<double>::max();
+            return applyMutation(move(ind));
+        }
+        return applyMutation(move(ind));
+    };
+
+    auto computeStats = [&](const vector<Individual>& p) -> pair<double,double> {
+        double sum = 0.0;
+        for (const auto& ind : p) sum += ind.fitness;
+        double avg = sum / (double)p.size();
+        double sq = 0.0;
+        for (const auto& ind : p) sq += (ind.fitness - avg) * (ind.fitness - avg);
+        double std = sqrt(sq / (double)p.size());
+        return {avg, std};
     };
 
     int generation = 0;
-    logger.logIteration(0, bestEver.fitness, bestEver.fitness, "init");
+    {
+        auto [avg0, std0] = computeStats(pop);
+        logger.logIteration(0, bestEver.fitness, bestEver.fitness, avg0, std0, "init");
+    }
 
     while (evals < cfg.budget) {
         generation++;
@@ -216,7 +239,7 @@ EAResult evolutionaryAlgorithm(
 
         while ((int)next.size() < cfg.popSize && evals < cfg.budget) {
             Individual offspring = applyCrossover(tournament(), tournament());
-            offspring = applyMutation(move(offspring));
+            offspring = applyStep(move(offspring));
             offspring.fitness = evalPenalized(inst, offspring.chromosome, M);
             evals++;
 
@@ -232,11 +255,14 @@ EAResult evolutionaryAlgorithm(
         pop = move(next);
 
         double best = min_element(pop.begin(), pop.end())->fitness;
-        logger.logIteration(generation, best, bestEver.fitness, "generation");
+        auto [avg, std] = computeStats(pop);
+        logger.logIteration(generation, best, bestEver.fitness, avg, std, "generation");
 
         if (generation % 10 == 0)
             cout << "Gen " << generation
                  << " | best=" << best
+                 << " | avg=" << avg
+                 << " | std=" << std
                  << " | global=" << bestEver.fitness
                  << " | evals=" << evals << "\n";
     }
