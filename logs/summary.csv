@@ -1,0 +1,3 @@
+run_id,algorithm,instance,n,k,m,seed,max_iterations,time_ms,best_cost,note
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,4,0,koniec
+20260512_230236_chaitin_baseline;chaitin_baseline;instance.txt;50;8;212;0;100;9;9;koniec chaitin baseline

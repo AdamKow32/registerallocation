@@ -1,0 +1,4 @@
+instance_id;graph;n;k;m;density;instance_seed;path
+inst01_interval_n50_k8_d035_s1001;interval;50;8;223;0.35;1001;experiments\20260618_124336_best_configs\instances\inst01_interval_n50_k8_d035_s1001.txt
+inst02_erdos_n50_k8_d025_s1002;erdos;50;8;280;0.25;1002;experiments\20260618_124336_best_configs\instances\inst02_erdos_n50_k8_d025_s1002.txt
+inst03_chordal_n60_k8_d065_s1003;chordal;60;8;148;0.65;1003;experiments\20260618_124336_best_configs\instances\inst03_chordal_n60_k8_d065_s1003.txt

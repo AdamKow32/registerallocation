@@ -1,0 +1,38 @@
+{
+  "instances": [
+    {
+      "instance_id": "inst01_interval_n50_k8_d035_s1001",
+      "graph": "interval",
+      "n": 50,
+      "k": 8,
+      "density": 0.35,
+      "seed": 1001
+    },
+    {
+      "instance_id": "inst02_erdos_n50_k8_d025_s1002",
+      "graph": "erdos",
+      "n": 50,
+      "k": 8,
+      "density": 0.25,
+      "seed": 1002
+    },
+    {
+      "instance_id": "inst03_chordal_n60_k8_d065_s1003",
+      "graph": "chordal",
+      "n": 60,
+      "k": 8,
+      "density": 0.65,
+      "seed": 1003
+    }
+  ],
+  "algorithm_seeds": [
+    42,
+    1042
+  ],
+  "budget": 50000,
+  "algorithms": [
+    "general",
+    "personalized"
+  ],
+  "expected_ea_runs": 12
+}

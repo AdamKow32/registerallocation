@@ -1,0 +1,3 @@
+algorithm;runs;min_cost;mean_cost;median_cost;max_cost;stdev_cost;feasible_runs
+ea_general;6;0;24.83333333;7;103;36.80768338;6
+ea_personalized;6;0;4.333333333;0;13;6.12825877;6

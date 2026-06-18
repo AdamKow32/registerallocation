@@ -1,0 +1,13 @@
+{
+  "algorithm": "personalized",
+  "popSize": 100,
+  "budget": 50000,
+  "px": 0.9,
+  "pm": 0.6,
+  "tournamentSize": 3,
+  "eliteCount": 2,
+  "chaitinFraction": 0.3,
+  "mutationType": "repair",
+  "crossoverType": "smart",
+  "seed": 42
+}

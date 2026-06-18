@@ -1,0 +1,13 @@
+{
+  "algorithm": "general",
+  "popSize": 200,
+  "budget": 50000,
+  "px": 0.9,
+  "pm": 0.3,
+  "tournamentSize": 3,
+  "eliteCount": 2,
+  "chaitinFraction": 0.0,
+  "mutationType": "change",
+  "crossoverType": "uniform",
+  "seed": 42
+}

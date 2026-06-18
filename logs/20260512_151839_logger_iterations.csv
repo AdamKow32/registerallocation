@@ -1,0 +1,12 @@
+run_id,algorithm,instance,n,k,m,seed,max_iterations,iteration,time_ms,current_cost,best_cost,note
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,0,3,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,1,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,2,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,3,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,4,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,5,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,6,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,7,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,8,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,9,4,0,0,test
+20260512_151839_logger,logger,instance.txt,50,8,212,0,10,10,4,0,0,test

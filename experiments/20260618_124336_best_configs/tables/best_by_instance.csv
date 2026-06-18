@@ -1,0 +1,7 @@
+instance_id;algorithm;runs;min_cost;mean_cost;stdev_cost;best_run_id;best_seed;feasible_runs
+inst01_interval_n50_k8_d035_s1001;ea_general;2;14;58.5;44.5;0002_ea_general_inst01_interval_n50_k8_d035_s1001_s42;42;2
+inst01_interval_n50_k8_d035_s1001;ea_personalized;2;13;13;0;0003_ea_personalized_inst01_interval_n50_k8_d035_s1001_s42;42;2
+inst02_erdos_n50_k8_d025_s1002;ea_general;2;0;16;16;0007_ea_general_inst02_erdos_n50_k8_d025_s1002_s42;42;2
+inst02_erdos_n50_k8_d025_s1002;ea_personalized;2;0;0;0;0008_ea_personalized_inst02_erdos_n50_k8_d025_s1002_s42;42;2
+inst03_chordal_n60_k8_d065_s1003;ea_general;2;0;0;0;0012_ea_general_inst03_chordal_n60_k8_d065_s1003_s42;42;2
+inst03_chordal_n60_k8_d065_s1003;ea_personalized;2;0;0;0;0013_ea_personalized_inst03_chordal_n60_k8_d065_s1003_s42;42;2
