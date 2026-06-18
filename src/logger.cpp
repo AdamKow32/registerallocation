@@ -63,6 +63,8 @@ public:
             << "time_ms"         << separator
             << "current_cost"    << separator
             << "best_cost"       << separator
+            << "avg_cost"        << separator
+            << "std_cost"        << separator
             << "note\n";
 
         bool summary_exists = filesystem::exists(summary_path);
@@ -90,6 +92,17 @@ public:
         double best_cost,
         const string& note
     ) {
+        logIteration(iteration, current_cost, best_cost, 0.0, 0.0, note);
+    }
+
+    void logIteration(
+        int iteration,
+        double current_cost,
+        double best_cost,
+        double avg_cost,
+        double std_cost,
+        const string& note
+    ) {
         iterations_file
             << run_id               << separator
             << config.algorithm     << separator
@@ -103,6 +116,8 @@ public:
             << elapsedMs()          << separator
             << current_cost         << separator
             << best_cost            << separator
+            << avg_cost             << separator
+            << std_cost             << separator
             << note << "\n";
     }
 
