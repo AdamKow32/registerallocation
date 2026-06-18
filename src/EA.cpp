@@ -320,9 +320,6 @@ EAResult evolutionaryAlgorithm(
          << " | evals=" << evals
          << " / " << totalBudget << "\n";
 
-    // cfg.generations includes the initial population as generation 0.
-    // Therefore total evaluations are exactly popSize * generations.
-    // In every evolutionary generation we evaluate popSize new offspring.
     while (generation + 1 < cfg.generations && evals < totalBudget) {
         generation++;
 
