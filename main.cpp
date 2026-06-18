@@ -1,5 +1,6 @@
 #include "src/chaitin.cpp"
-#include "src/ea.cpp"
+#include "src/EA.cpp"
+
 #include <iostream>
 #include <filesystem>
 
@@ -22,7 +23,9 @@ int main() {
         cfg.algorithm      = "chaitin_baseline";
         cfg.instance_name  = instance_file;
         cfg.output_dir     = "logs";
-        cfg.n = instance.n; cfg.k = instance.k; cfg.m = instance.m;
+        cfg.n = instance.n;
+        cfg.k = instance.k;
+        cfg.m = instance.m;
         cfg.seed           = 0;
         cfg.max_iterations = instance.n * 2;
 
@@ -39,11 +42,11 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 100;
+        eaCfg.popSize         = 200;
         eaCfg.budget          = 50000;
         eaCfg.px              = 0.7;
         eaCfg.pm              = 0.3;
-        eaCfg.tournamentSize  = 3;
+        eaCfg.tournamentSize  = 2;
         eaCfg.eliteCount      = 2;
         eaCfg.chaitinFraction = 0.0;
         eaCfg.mutationType    = "change";
@@ -54,7 +57,9 @@ int main() {
         cfg.algorithm      = "ea_general";
         cfg.instance_name  = instance_file;
         cfg.output_dir     = "logs";
-        cfg.n = instance.n; cfg.k = instance.k; cfg.m = instance.m;
+        cfg.n = instance.n;
+        cfg.k = instance.k;
+        cfg.m = instance.m;
         cfg.seed           = eaCfg.seed;
         cfg.max_iterations = eaCfg.budget;
 
@@ -80,9 +85,9 @@ int main() {
 
     {
         EAConfig eaCfg;
-        eaCfg.popSize         = 100;
+        eaCfg.popSize         = 50;
         eaCfg.budget          = 50000;
-        eaCfg.px              = 0.7;
+        eaCfg.px              = 0.9;
         eaCfg.pm              = 0.3;
         eaCfg.tournamentSize  = 3;
         eaCfg.eliteCount      = 2;
@@ -95,7 +100,9 @@ int main() {
         cfg.algorithm      = "ea_personalized";
         cfg.instance_name  = instance_file;
         cfg.output_dir     = "logs";
-        cfg.n = instance.n; cfg.k = instance.k; cfg.m = instance.m;
+        cfg.n = instance.n;
+        cfg.k = instance.k;
+        cfg.m = instance.m;
         cfg.seed           = eaCfg.seed;
         cfg.max_iterations = eaCfg.budget;
 
