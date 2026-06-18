@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 int main() {
     fs::create_directories("logs");
 
-    string instance_file = "data/instance.txt";
+    string instance_file = "data/instance_hard.txt";
     Instance instance = readInstance(instance_file);
 
     cout << "Instance: n=" << instance.n
@@ -103,6 +103,8 @@ int main() {
         eaCfg.tournamentSize  = 3;
         eaCfg.eliteCount      = 2;
         eaCfg.chaitinFraction = 0.0;
+        eaCfg.repairStrength  = 3;
+        eaCfg.smartBias       = 0.75;
         eaCfg.mutationType    = "repair";
         eaCfg.crossoverType   = "smart";
         eaCfg.seed            = 42;
@@ -122,7 +124,9 @@ int main() {
              << "  pm=" << eaCfg.pm
              << "  mutation=" << eaCfg.mutationType
              << "  crossover=" << eaCfg.crossoverType
-             << "  chaitinFraction=" << eaCfg.chaitinFraction << "\n";
+             << "  chaitinFraction=" << eaCfg.chaitinFraction
+             << "  repairStrength=" << eaCfg.repairStrength
+             << "  smartBias=" << eaCfg.smartBias << "\n";
 
         EAResult result = evolutionaryAlgorithm(instance, chaitin_result.assignment, logger, eaCfg);
 

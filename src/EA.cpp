@@ -4,9 +4,11 @@
 #include "logger.cpp"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <random>
+#include <tuple>
 #include <vector>
 
 using namespace std;
@@ -22,13 +24,15 @@ struct Individual {
 
 struct EAConfig {
     int    popSize           = 100;
-    int    budget            = 50000;
-    int    generations       = 500;
+    int    budget            = 50000;   // compatibility/output only
+    int    generations       = 500;     // total evaluation budget = popSize * generations
     double px                = 0.7;
     double pm                = 0.3;
     int    tournamentSize    = 3;
     int    eliteCount        = 2;
-    double chaitinFraction   = 0.3;
+    double chaitinFraction   = 0.3; //
+    int    repairStrength    = 3;
+    double smartBias         = 0.75;
     string mutationType      = "repair";   // repair | change | swap
     string crossoverType     = "smart";    // smart | uniform | onepoint
     int    seed              = 42;
@@ -92,10 +96,39 @@ EAResult evolutionaryAlgorithm(
 
     auto makeFromChaitin = [&]() {
         vector<int> c = chaitin_solution;
-        uniform_int_distribution<int> pos(0, inst.n - 1);
-        int perturb = max(1, inst.n / 5);
-        for (int i = 0; i < perturb; i++)
-            c[pos(rng)] = geneDist(rng);
+        vector<int> order(inst.n);
+        for (int i = 0; i < inst.n; i++) order[i] = i;
+        shuffle(order.begin(), order.end(), rng);
+
+        int perturb = max(1, inst.n / 10);
+        for (int i = 0; i < perturb; i++) {
+            int v = order[i];
+            if (coin(rng) < 0.7) {
+                vector<int> freeRegisters;
+                vector<bool> used(inst.k + 1, false);
+
+                for (int nb : adj[v]) {
+                    if (c[nb] > 0) {
+                        used[c[nb]] = true;
+                    }
+                }
+
+                for (int r = 1; r <= inst.k; r++) {
+                    if (!used[r]) {
+                        freeRegisters.push_back(r);
+                    }
+                }
+
+                if (!freeRegisters.empty()) {
+                    uniform_int_distribution<int> regDist(0, (int)freeRegisters.size() - 1);
+                    c[v] = freeRegisters[regDist(rng)];
+                } else {
+                    c[v] = 0;
+                }
+            } else {
+                c[v] = geneDist(rng);
+            }
+        }
         return Individual(c, evalPenalized(inst, c, M));
     };
 
@@ -133,7 +166,13 @@ EAResult evolutionaryAlgorithm(
                 if (p1.chromosome[nb] != 0 && p1.chromosome[nb] == p1.chromosome[i]) conf1++;
                 if (p2.chromosome[nb] != 0 && p2.chromosome[nb] == p2.chromosome[i]) conf2++;
             }
-            c[i] = (conf1 <= conf2) ? p1.chromosome[i] : p2.chromosome[i];
+            if (conf1 == conf2) {
+                c[i] = (coin(rng) < 0.5) ? p1.chromosome[i] : p2.chromosome[i];
+            } else if (conf1 < conf2) {
+                c[i] = (coin(rng) < cfg.smartBias) ? p1.chromosome[i] : p2.chromosome[i];
+            } else {
+                c[i] = (coin(rng) < cfg.smartBias) ? p2.chromosome[i] : p1.chromosome[i];
+            }
         }
         return Individual(c, numeric_limits<double>::max());
     };
@@ -187,36 +226,40 @@ EAResult evolutionaryAlgorithm(
             return true;
         };
 
-        vector<int> conflicted;
-        for (auto [u, v] : inst.edges) {
-            if (ind.chromosome[u] != 0 &&
-                ind.chromosome[v] != 0 &&
-                ind.chromosome[u] == ind.chromosome[v]) {
-                conflicted.push_back((inst.weights[u] < inst.weights[v]) ? u : v);
-            }
-        }
-
-        if (!conflicted.empty()) {
-            uniform_int_distribution<int> pick(0, (int)conflicted.size() - 1);
-            int victim = conflicted[pick(rng)];
-            if (!assignFreeRegister(victim)) {
-                ind.chromosome[victim] = 0;
-            }
-        } else {
-            vector<int> spilled;
-            for (int i = 0; i < inst.n; i++) {
-                if (ind.chromosome[i] == 0) {
-                    spilled.push_back(i);
+        int repairs = max(1, cfg.repairStrength);
+        for (int step = 0; step < repairs; step++) {
+            vector<int> conflicted;
+            for (auto [u, v] : inst.edges) {
+                if (ind.chromosome[u] != 0 &&
+                    ind.chromosome[v] != 0 &&
+                    ind.chromosome[u] == ind.chromosome[v]) {
+                    conflicted.push_back((inst.weights[u] < inst.weights[v]) ? u : v);
                 }
             }
 
-            if (!spilled.empty()) {
-                uniform_int_distribution<int> pick(0, (int)spilled.size() - 1);
-                assignFreeRegister(spilled[pick(rng)]);
-            } else {
-                uniform_int_distribution<int> pos(0, inst.n - 1);
-                ind.chromosome[pos(rng)] = geneDist(rng);
+            if (!conflicted.empty()) {
+                uniform_int_distribution<int> pick(0, (int)conflicted.size() - 1);
+                int victim = conflicted[pick(rng)];
+                if (!assignFreeRegister(victim)) {
+                    ind.chromosome[victim] = 0;
+                }
+                continue;
             }
+
+            vector<int> spilled;
+            for (int i = 0; i < inst.n; i++) {
+                if (ind.chromosome[i] == 0) spilled.push_back(i);
+            }
+
+            if (spilled.empty()) break;
+
+            uniform_int_distribution<int> pick(0, (int)spilled.size() - 1);
+            assignFreeRegister(spilled[pick(rng)]);
+        }
+
+        if (coin(rng) < 0.1) {
+            uniform_int_distribution<int> pos(0, inst.n - 1);
+            ind.chromosome[pos(rng)] = geneDist(rng);
         }
 
         ind.fitness = numeric_limits<double>::max();
@@ -246,10 +289,29 @@ EAResult evolutionaryAlgorithm(
         return mutationRepair(move(ind));
     };
 
+    auto computeStats = [&](const vector<Individual>& p) {
+        double sum = 0.0;
+        double worst = -numeric_limits<double>::max();
+        for (const auto& ind : p) {
+            sum += ind.fitness;
+            worst = max(worst, ind.fitness);
+        }
+
+        double avg = sum / (double)p.size();
+        double sq = 0.0;
+        for (const auto& ind : p) {
+            sq += (ind.fitness - avg) * (ind.fitness - avg);
+        }
+
+        double stddev = sqrt(sq / (double)p.size());
+        return tuple<double, double, double>(avg, stddev, worst);
+    };
+
     int generation = 0;
     const int totalBudget = cfg.popSize * cfg.generations;
 
-    logger.logIteration(0, bestEver.fitness, bestEver.fitness, "init");
+    auto [avg0, std0, worst0] = computeStats(pop);
+    logger.logIteration(0, worst0, bestEver.fitness, avg0, std0, "init");
     cout << "Gen 0"
          << " / " << (cfg.generations - 1)
          << " | popSize=" << cfg.popSize
@@ -268,12 +330,15 @@ EAResult evolutionaryAlgorithm(
         candidates.reserve(cfg.eliteCount + cfg.popSize);
 
         int offspringCreated = 0;
+        double currentGenerationBest = numeric_limits<double>::max();
         while (offspringCreated < cfg.popSize && evals < totalBudget) {
             Individual offspring = applyCrossover(tournament(), tournament());
             offspring = applyMutation(move(offspring));
             offspring.fitness = evalPenalized(inst, offspring.chromosome, M);
             evals++;
             offspringCreated++;
+
+            currentGenerationBest = min(currentGenerationBest, offspring.fitness);
 
             if (offspring.fitness < bestEver.fitness)
                 bestEver = offspring;
@@ -287,14 +352,14 @@ EAResult evolutionaryAlgorithm(
         }
         pop = move(candidates);
 
-        double best = min_element(pop.begin(), pop.end())->fitness;
-        logger.logIteration(generation, best, bestEver.fitness, "generation");
+        auto [avg, stddev, worst] = computeStats(pop);
+        logger.logIteration(generation, worst, bestEver.fitness, avg, stddev, "generation");
 
         if (generation <= 10 || generation % 10 == 0 || generation + 1 == cfg.generations)
             cout << "Gen " << generation
                  << " / " << (cfg.generations - 1)
                  << " | popSize=" << cfg.popSize
-                 << " | best=" << best
+                 << " | current=" << currentGenerationBest
                  << " | global=" << bestEver.fitness
                  << " | evals=" << evals
                  << " / " << totalBudget << "\n";
